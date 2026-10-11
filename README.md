@@ -12,7 +12,7 @@ A Windows desktop launcher with Microsoft sign-in, easy profile management, cust
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64-4287f5)](https://github.com/lequcfel/SimpleMC/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0--only-4287f5)](LICENSE)
 
-[Download](https://github.com/lequcfel/SimpleMC/releases/latest) Â· [Build from source](#build-from-source) Â· [Report a problem](https://github.com/lequcfel/SimpleMC/issues)
+[Download](https://github.com/lequcfel/SimpleMC/releases/latest) · [Build from source](#build-from-source) · [Report a problem](https://github.com/lequcfel/SimpleMC/issues)
 
 </div>
 
@@ -29,7 +29,7 @@ SimpleMC keeps launching Minecraft straightforward while giving you control over
 | Content discovery | Browse mods, modpacks, resource packs, data packs, and shaders. |
 | Skins and screenshots | Manage your Minecraft skin and browse screenshots in the client. |
 | Tray behavior | The launcher hides while Minecraft runs and returns when the game closes. |
-| Update settings | Check manually, control automatic checks, or disable them in Settings â†’ Client â†’ Updates. |
+| Update settings | Check manually, control automatic checks, or disable them in Settings → Client → Updates. |
 
 The default profile is Minecraft **1.21.11**. Starter profiles do not download the game until you choose to play. Microsoft sign-in requires an account that owns Minecraft: Java Edition.
 
