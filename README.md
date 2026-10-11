@@ -41,11 +41,11 @@ The default profile is Minecraft **1.21.11**. Starter profiles do not download t
 
 The `.sig`, `latest.json`, and source archives are supporting files; they are not installers.
 
-**Release status:** version **1.0.0** is currently published. This branch contains **1.0.1 development source** and the new custom installer. Source changes on `main` do not automatically publish a client update.
+**Release status:** download published installers from the [Releases page](https://github.com/lequcfel/SimpleMC/releases). This branch contains the SimpleMC source and custom installer. Source changes on `main` do not automatically publish a client update.
 
-### New installer preview
+### Windows installer
 
-The upcoming installer offers a folder picker for a fresh installation, Repair for an existing installation, and Uninstall with an optional complete data removal.
+The custom installer offers a folder picker for a fresh installation, Repair for an existing installation, and Uninstall with an optional complete data removal.
 
 ![SimpleMC custom installer preview](docs/images/installer.png)
 
