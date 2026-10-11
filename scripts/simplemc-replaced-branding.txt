@@ -1,0 +1,11 @@
+apps/labrinth/assets/logo.svg
+apps/frontend/src/assets/images/logo.svg
+apps/docs/src/assets/light-logo.svg
+apps/docs/src/assets/dark-logo.svg
+apps/app/icons/apple.icon/Assets/Modrinth logo.svg
+apps/app-frontend/src/assets/modrinth_app.svg
+apps/frontend/src/assets/images/games/rinth.png
+apps/app-frontend/src/assets/welcome/modrinth-social-icon.png
+apps/app-frontend/src/assets/sad-modrinth-bot.webp
+apps/app-frontend/src/assets/instance-icons/wrench-rinth.png
+packages/ui/src/assets/servers/server-list-empty/modrinth-smp.png
