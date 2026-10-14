@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core'
 import { computed, ref } from 'vue'
 
 export const APP_UPDATE_POPUP_DELAY_MS = 24 * 60 * 60 * 1000
@@ -188,6 +189,9 @@ export const updateCheckState = ref({ checking: false, message: '' })
 export function saveUpdatePreferences(enabled: boolean, timing: UpdateCheckTiming): void {
 	localStorage.setItem('SimpleMC-update-preferences', JSON.stringify({ enabled, timing }))
 	updatePreferences.value = { enabled, timing }
+	void invoke('set_desktop_update_preferences', { enabled, timing }).catch((error) => {
+		console.error('Could not synchronize native update preferences.', error)
+	})
 }
 export async function checkForAppUpdates(): Promise<void> {
 	await actions.check?.()

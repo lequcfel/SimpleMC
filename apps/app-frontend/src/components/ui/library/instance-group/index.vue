@@ -25,6 +25,8 @@ import { useElementSize, useWindowSize } from '@vueuse/core'
 import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import GroupActionButtons from '@/components/ui/library/instance-group/group-action-buttons.vue'
+import { visibleInstanceRange } from '@/helpers/visible-instance-range'
+
 import InstanceCard from '@/components/ui/library/instance-group/instance-card.vue'
 import type {
 	InstanceCard as InstanceCardExposed,
@@ -140,6 +142,9 @@ const gridHeight = computed(() =>
 			gap.value,
 	),
 )
+const instanceIndices = computed(() =>
+	new Map(props.instanceGroup.instances.map((instance, index) => [instance.id, index])),
+)
 const visibleInstances = computed(() => {
 	if (gridWidth.value <= 0) return []
 	if (!props.hideHeader && isSectionCollapsed(props.instanceGroup.id) && !isSearching.value)
@@ -150,15 +155,16 @@ const visibleInstances = computed(() => {
 	const end =
 		Math.max(0, Math.ceil((top + (viewportHeight.value || 800) + 300) / stride)) * columnCount.value
 	const dragging = activeInstanceGroupDrag.value
-	return props.instanceGroup.instances.flatMap((instance, index) => {
-		const inViewport = index >= first && index < end
-		const focused = focusedInstanceId.value === instance.id
-		const dragged =
-			dragging &&
-			(dragging.fromGroup ?? 'group:none') === props.instanceGroup.id &&
-			dragging.primaryInstanceId === instance.id
-		return inViewport || focused || dragged ? [{ instance, index }] : []
+	const pinned = [focusedInstanceId.value]
+	if (dragging && (dragging.fromGroup ?? 'group:none') === props.instanceGroup.id) {
+		pinned.push(dragging.primaryInstanceId)
+	}
+	const pinnedIndices = pinned.flatMap((id) => {
+		if (!id) return []
+		const index = instanceIndices.value.get(id)
+		return index === undefined ? [] : [index]
 	})
+	return visibleInstanceRange(props.instanceGroup.instances, first, end, pinnedIndices)
 })
 
 function instancePosition(index: number) {

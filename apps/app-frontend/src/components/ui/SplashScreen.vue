@@ -37,7 +37,7 @@ const doneLoading = ref(false)
 const loadingProgress = ref(0)
 const message = ref()
 
-const MIN_DISPLAY_MS = 500
+const MIN_DISPLAY_MS = 0
 const mountedAt = Date.now()
 
 const loading = injectLoadingState()
@@ -109,7 +109,7 @@ useAppEvent('loading', (e) => {
 }
 
 .splash-fade-leave-active {
-	transition: opacity 0.3s ease-in-out;
+	transition: opacity 0.15s ease-in-out;
 }
 
 .splash-fade-leave-to {

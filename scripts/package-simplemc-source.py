@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("output", type=Path)
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
-excluded = {".git", "node_modules", "target", ".turbo", ".nuxt", "dist", "secrets", "installer-source"}
+excluded = {".git", "node_modules", "target", ".turbo", ".nuxt", "dist", "secrets", "installer-source", ".simplemc-performance"}
 args.output.parent.mkdir(parents=True, exist_ok=True)
 with zipfile.ZipFile(args.output, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
 	for directory, subdirs, files in os.walk(root):

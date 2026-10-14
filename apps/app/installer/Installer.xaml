@@ -47,6 +47,7 @@
 							<TextBlock Text="Installation folder" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
 							<Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Border CornerRadius="8" Background="#25272E" BorderBrush="#42454F" BorderThickness="1" Padding="12"><TextBox x:Name="Location" Background="Transparent" Foreground="#D5D7DF" BorderThickness="0" FontSize="13"/></Border><Button x:Name="Browse" Grid.Column="1" Content="Browse..." Margin="10,0,0,0" Padding="15,10"/></Grid>
 							<TextBlock x:Name="Note" Text="Repair keeps your profiles and settings. During uninstall, you can choose whether to keep your data." Foreground="#969BA9" FontSize="12" TextWrapping="Wrap" Margin="0,14,0,0"/>
+							<CheckBox x:Name="DesktopShortcut" Content="Create a desktop shortcut" IsChecked="True" Foreground="White" FontSize="13" Margin="0,16,0,0"/>
 						</StackPanel>
 						<StackPanel Grid.Row="4">
 							<TextBlock x:Name="Status" TextWrapping="Wrap" FontSize="13" Foreground="#B7BAC5" Margin="0,0,0,12"/>

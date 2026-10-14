@@ -106,3 +106,6 @@ secrets/
 app.db
 app.db-shm
 app.db-wal
+
+# Local performance fixtures and reports
+.simplemc-performance/

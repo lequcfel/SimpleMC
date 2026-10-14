@@ -49,6 +49,14 @@ export default defineConfig({
 		],
 	},
 	plugins: [
+		process.env.VITE_SIMPLEMC_BENCHMARK === 'true' ? {
+			name: 'simplemc-performance-instrumentation',
+			transform(code, id) {
+				if (!id.replaceAll('\\', '/').endsWith('/@tauri-apps/api/core.js')) return
+				return code.replace('return window.__TAURI_INTERNALS__.invoke(cmd, args, options);', 'return window.__simplemcPerformance ? window.__simplemcPerformance.invoke(cmd, () => window.__TAURI_INTERNALS__.invoke(cmd, args, options)) : window.__TAURI_INTERNALS__.invoke(cmd, args, options);')
+			},
+		} : undefined,
+
 		vue(),
 		svgLoader({
 			svgoConfig: {

@@ -57,7 +57,8 @@ export function syncedScreenshotsQueryOptions() {
 	return queryOptions({
 		queryKey: screenshotKeys.global(),
 		queryFn: list_synced_screenshots,
-		staleTime: 0,
+		staleTime: 15_000,
+		refetchOnWindowFocus: 'always',
 	})
 }
 
@@ -65,7 +66,8 @@ export function instanceScreenshotsQueryOptions(instanceId: string) {
 	return queryOptions({
 		queryKey: screenshotKeys.instance(instanceId),
 		queryFn: () => list_instance_screenshots(instanceId),
-		staleTime: 0,
+		staleTime: 15_000,
+		refetchOnWindowFocus: 'always',
 	})
 }
 
@@ -73,7 +75,8 @@ export function screenshotGroupsQueryOptions() {
 	return queryOptions({
 		queryKey: screenshotKeys.groups(),
 		queryFn: list_screenshot_groups,
-		staleTime: 0,
+		staleTime: 15_000,
+		refetchOnWindowFocus: 'always',
 	})
 }
 

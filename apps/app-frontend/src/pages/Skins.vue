@@ -271,6 +271,7 @@ const savedSkins = computed(() => {
 })
 const authServerQuery = useQuery({
 	queryKey: ['authServerReachability'],
+	staleTime: 5 * 60 * 1000,
 	queryFn: async () => {
 		await check_reachable()
 		return true

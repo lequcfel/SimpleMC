@@ -48,7 +48,6 @@ import dayjs from 'dayjs'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { useAppEvent } from '@/composables/use-app-event'
 import {
 	create_screenshot_group,
 	delete_screenshot_group,
@@ -775,10 +774,6 @@ watch(
 	{ immediate: true },
 )
 
-useAppEvent('instance', (event) => {
-	if (event.event !== 'screenshots_updated') return
-	void invalidateScreenshots([event.instance_id])
-})
 
 function getSelectionKey(screenshot: InstanceScreenshot) {
 	return JSON.stringify([screenshot.instance_id, screenshot.file_name])

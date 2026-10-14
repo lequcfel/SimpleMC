@@ -24,7 +24,7 @@ SimpleMC keeps launching Minecraft straightforward while giving you control over
 | --- | --- |
 | Microsoft sign-in | Sign in with your Minecraft account and see your skin head in the launcher. |
 | Minecraft library | Choose a version, manage profiles, filter your library, and import from another launcher. |
-| Performance preset | Minecraft 1.21.11 with Fabric and a preset including Sodium, Voxy, FerriteCore, Sodium Extra, Mouse Tweaks, Mod Menu, and Zoomify, plus required dependencies. |
+| Performance preset | Minecraft 1.21.11 with Fabric and a preset including Sodium, Voxy, FerriteCore, Sodium Extra, Mouse Tweaks, Mod Menu, Zoomify, and Armor Durability HUD, plus required dependencies. |
 | Appearance | OLED theme, your own accent color, included or custom backgrounds, optional blur, and background rotation on restart. |
 | Content discovery | Browse mods, modpacks, resource packs, data packs, and shaders. |
 | Skins and screenshots | Manage your Minecraft skin and browse screenshots in the client. |
@@ -45,7 +45,7 @@ The `.sig`, `latest.json`, and source archives are supporting files; they are no
 
 ### Windows installer
 
-The custom installer offers a folder picker for a fresh installation, Repair for an existing installation, and Uninstall with an optional complete data removal.
+The custom installer offers a folder picker, an optional desktop shortcut, Repair, and Uninstall with optional complete data removal. Windows Programs and Features can open the branded maintenance window for uninstalling or repairing.
 
 ![SimpleMC custom installer preview](docs/images/installer.png)
 
@@ -114,8 +114,20 @@ The upstream monorepo structure and additional packages remain available for bui
 
 SimpleMC is an independent modified version of [Modrinth App](https://github.com/modrinth/code), originally developed by **Rinth, Inc. and its contributors**. SimpleMC is not affiliated with or endorsed by Modrinth.
 
-SimpleMC modifications by **lequcfel and contributors**, 2026; modified through **11 October 2026**. The launcher and its modifications are licensed under **GPL-3.0-only**. Original copyright and package license notices are retained. Other packages, third-party dependencies, and downloaded mods retain their own licenses.
+SimpleMC modifications by **lequcfel and contributors**, 2026; modified through **15 October 2026**. The launcher and its modifications are licensed under **GPL-3.0-only**. Original copyright and package license notices are retained. Other packages, third-party dependencies, and downloaded mods retain their own licenses.
 
 See [LICENSE](LICENSE), [NOTICE.md](NOTICE.md), and each package's license. The software is provided **without warranty**. When redistributing a build, provide the matching modified source and build instructions under the applicable license terms.
 
 Minecraft and Microsoft names and logos belong to their respective owners. SimpleMC is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
+
+## Performance improvements
+
+See the [measured startup, screen-loading, and scrolling results](docs/SimpleMC-performance-2026-10-14.md) included in 1.0.3, with the test method and limitations.
+
+## Version 1.0.3
+
+- Faster startup and repeat content loading, with less work during scrolling.
+- Redesigned launch button with a larger label and running-game status.
+- Armor Durability HUD added to the Minecraft 1.21.11 Fabric preset.
+- Desktop-shortcut choice and Windows repair/uninstall integration.
+- Improved native tray, window controls, and exit-time update handling.

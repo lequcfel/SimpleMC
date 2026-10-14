@@ -25,6 +25,8 @@ internal static class Installer
 	private static Window window;
 	private static string installDirectory;
 	private static bool installed, busy, ready;
+	private static readonly bool PreviewOnly = __PREVIEW_ONLY__;
+	private const string MaintenanceName = "SimpleMC-maintenance.exe";
 	private const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\SimpleMC";
 
 	[STAThread]
@@ -33,7 +35,31 @@ internal static class Installer
 		try
 		{
 			if (Array.Exists(args, arg => arg.Equals("/S", StringComparison.OrdinalIgnoreCase) || arg.Equals("/P", StringComparison.OrdinalIgnoreCase)))
-				return RunBackend(GetForwardedArguments());
+			{
+				if (PreviewOnly) return 1;
+				string forwarded = GetForwardedArguments();
+				if (Array.IndexOf(args, "--uninstall") >= 0)
+				{
+					if (!forwarded.StartsWith("--uninstall", StringComparison.Ordinal)) return 1;
+					DetectInstallation();
+					if (!installed) return 0;
+					return RunProcess(Path.Combine(installDirectory, "uninstall.exe"), forwarded.Substring("--uninstall".Length).Trim());
+				}
+				int result = RunBackend(forwarded);
+				if (result == 0) { DetectInstallation(); if (installed) RegisterMaintenance(installDirectory); }
+				return result;
+			}
+			if (!PreviewOnly && (Array.IndexOf(args, "--uninstall") >= 0 || Array.IndexOf(args, "--repair") >= 0)
+				&& Array.IndexOf(args, "--maintenance-session") < 0
+				&& String.Equals(Path.GetFileName(Assembly.GetExecutingAssembly().Location), MaintenanceName, StringComparison.OrdinalIgnoreCase))
+			{
+				string temporary = Path.Combine(Path.GetTempPath(), "SimpleMC-maintenance-" + Guid.NewGuid().ToString("N"));
+				Directory.CreateDirectory(temporary);
+				string executable = Path.Combine(temporary, "SimpleMC-setup.exe");
+				File.Copy(Assembly.GetExecutingAssembly().Location, executable);
+				Process.Start(new ProcessStartInfo(executable, GetForwardedArguments() + " --maintenance-session") { UseShellExecute = false });
+				return 0;
+			}
 			var app = new Application();
 			using (var stream = Resource("Layout")) window = (Window)XamlReader.Load(stream);
 			Control<Image>("Landscape").Source = LoadImage("Landscape");
@@ -41,6 +67,7 @@ internal static class Installer
 			window.Icon = LoadImage("Logo");
 			DetectInstallation();
 			Refresh();
+			if (installed && Array.IndexOf(args, "--uninstall") >= 0) ShowConfirmation(true);
 			Control<Button>("Primary").Click += async (sender, eventArgs) => await InstallOrLaunch();
 			Control<Button>("Uninstall").Click += (sender, eventArgs) => ShowConfirmation(true);
 			Control<Button>("Browse").Click += (sender, eventArgs) => BrowseFolder();
@@ -116,6 +143,12 @@ internal static class Installer
 		Control<TextBox>("Location").ToolTip = installed ? "Repair uses the existing installation folder." : "Choose where SimpleMC will be installed.";
 		Control<Button>("Primary").Content = ready ? "Launch SimpleMC" : installed ? "Repair" : "Install";
 		Control<Button>("Uninstall").Visibility = installed ? Visibility.Visible : Visibility.Collapsed;
+		Control<CheckBox>("DesktopShortcut").IsChecked = !installed || File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "SimpleMC.lnk"));
+		if (PreviewOnly) {
+			Control<Button>("Primary").IsEnabled = false;
+			Control<Button>("ConfirmUninstall").IsEnabled = false;
+			SetStatus("Layout preview only. Installation and removal are disabled.");
+		}
 	}
 	private static void SetStatus(string message) { Control<TextBlock>("Status").Text = message; }
 	private static void ShowLicenses()
@@ -131,6 +164,7 @@ internal static class Installer
 		if (show) Control<CheckBox>("RemoveData").IsChecked = false;
 		Control<Border>("Confirmation").Visibility = show ? Visibility.Visible : Visibility.Collapsed;
 		Control<StackPanel>("Actions").Visibility = show ? Visibility.Collapsed : Visibility.Visible;
+		Control<CheckBox>("DesktopShortcut").Visibility = show ? Visibility.Collapsed : Visibility.Visible;
 	}
 	private static void SetBusy(bool value)
 	{
@@ -140,6 +174,7 @@ internal static class Installer
 		Control<TextBox>("Location").IsEnabled = !value;
 		Control<Button>("Browse").IsEnabled = !value && !installed;
 		Control<Button>("Close").IsEnabled = !value;
+		Control<CheckBox>("DesktopShortcut").IsEnabled = !value && !ready;
 	}
 	private static void EnsureClientClosed()
 	{
@@ -156,6 +191,7 @@ internal static class Installer
 	}
 	private static async Task InstallOrLaunch()
 	{
+		if (PreviewOnly) return;
 		if (busy) return;
 		if (ready)
 		{
@@ -168,9 +204,11 @@ internal static class Installer
 			installDirectory = Path.GetFullPath(Control<TextBox>("Location").Text.Trim());
 			EnsureClientClosed();
 			SetBusy(true); SetStatus(installed ? "Repairing SimpleMC…" : "Installing SimpleMC…");
-			int result = await Task.Run(() => RunBackend("/S /D=" + installDirectory));
+			bool desktopShortcut = Control<CheckBox>("DesktopShortcut").IsChecked == true;
+			int result = await Task.Run(() => RunBackend("/S" + (desktopShortcut ? "" : " /ND") + " /D=" + installDirectory));
 			if (result != 0 || !File.Exists(Path.Combine(installDirectory, "SimpleMC.exe")))
 				throw new InvalidOperationException("Installation could not finish. Please try again. (Code " + result + ")");
+			RegisterMaintenance(installDirectory);
 			installed = true; ready = true; Refresh();
 			Control<TextBlock>("Heading").Text = "Ready to play";
 			Control<TextBlock>("Description").Text = "SimpleMC __VERSION__ is ready.";
@@ -181,6 +219,7 @@ internal static class Installer
 	}
 	private static async Task Uninstall()
 	{
+		if (PreviewOnly) return;
 		if (busy) return;
 		bool removeData = Control<CheckBox>("RemoveData").IsChecked == true;
 		ShowConfirmation(false);
@@ -306,11 +345,33 @@ internal static class Installer
 	}
 	private static int RunBackend(string arguments)
 	{
+		if (PreviewOnly) throw new InvalidOperationException("This installer is a layout preview only.");
 		return WithTemporaryDirectory(directory => {
 			string backend = Path.Combine(directory, "SimpleMC-setup.exe");
 			using (var input = Resource("Backend")) using (var output = File.Create(backend)) input.CopyTo(output);
 			return RunProcess(backend, arguments);
 		});
+	}
+	private static void RegisterMaintenance(string directory, string registryPath = UninstallKey)
+	{
+		string maintenance = Path.Combine(directory, MaintenanceName);
+		string source = Assembly.GetExecutingAssembly().Location;
+		if (!String.Equals(Path.GetFullPath(source), Path.GetFullPath(maintenance), StringComparison.OrdinalIgnoreCase))
+			File.Copy(source, maintenance, true);
+		using (var registry = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64))
+		using (var key = registry.CreateSubKey(registryPath))
+		{
+			key.SetValue("DisplayName", "SimpleMC");
+			key.SetValue("DisplayVersion", "__VERSION__");
+			key.SetValue("InstallLocation", directory);
+			key.SetValue("DisplayIcon", "\"" + Path.Combine(directory, "SimpleMC.exe") + "\"");
+			key.SetValue("UninstallString", "\"" + maintenance + "\" --uninstall");
+			key.SetValue("QuietUninstallString", "\"" + Path.Combine(directory, "uninstall.exe") + "\" /S");
+			key.SetValue("ModifyPath", "\"" + maintenance + "\" --repair");
+			key.SetValue("NoModify", 0, RegistryValueKind.DWord);
+			key.SetValue("NoRepair", 0, RegistryValueKind.DWord);
+			key.SetValue("WindowsInstaller", 0, RegistryValueKind.DWord);
+		}
 	}
 	private static int WithTemporaryDirectory(Func<string, int> operation)
 	{

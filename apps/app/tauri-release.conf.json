@@ -43,5 +43,5 @@
 		}
 	},
 	"identifier": "com.simplemc.launcher",
-	"version": "1.0.1"
+	"version": "../app-frontend/package.json"
 }

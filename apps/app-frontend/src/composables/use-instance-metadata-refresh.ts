@@ -2,8 +2,9 @@ import { useQueryClient } from '@tanstack/vue-query'
 
 import type { InstancePayload } from '@/generated/app-events/InstancePayload'
 import { installJobInstanceId, isInstallJobFinished } from '@/helpers/install'
+import { clearRunningProcessCache } from '@/helpers/process'
 import { syncedPackKeys } from '@/helpers/synced-packs'
-import { instanceKeys, instanceListQueryOptions } from '@/pages/instance/query-options'
+import { instanceKeys, instanceListQueryOptions, screenshotKeys } from '@/pages/instance/query-options'
 import type { AppEvents } from '@/providers/app-events'
 
 import { useAppEvent } from './use-app-event'
@@ -57,9 +58,17 @@ export function useInstanceMetadataRefresh(events: AppEvents) {
 		return refreshPromise
 	}
 
+	useAppEvent('process', () => {
+		clearRunningProcessCache()
+		void queryClient.invalidateQueries({ queryKey: ['running-processes'] })
+	}, events)
 	useAppEvent(
 		'instance',
 		(event) => {
+			if (event.event === 'screenshots_updated') {
+				void queryClient.invalidateQueries({ queryKey: screenshotKeys.global() })
+				void queryClient.invalidateQueries({ queryKey: screenshotKeys.instance(event.instance_id) })
+			}
 			if (event.event === 'synced') {
 				packsRefreshQueued = true
 			}

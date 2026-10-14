@@ -11,7 +11,7 @@
 				type="quiet"
 				label="Minimize window"
 				class="relative expanded-button"
-				@click="getCurrentWindow().minimize()"
+				@click="windowAction('minimize')"
 			>
 				<MinimizeIcon />
 			</IconButton>
@@ -19,7 +19,7 @@
 				type="quiet"
 				label="Toggle maximize window"
 				class="relative expanded-button"
-				@click="getCurrentWindow().toggleMaximize()"
+				@click="windowAction('toggle_maximize')"
 			>
 				<RestoreIcon v-if="isMaximized" />
 				<MaximizeIcon v-else />
@@ -40,7 +40,7 @@
 import { MaximizeIcon, MinimizeIcon, RestoreIcon, XIcon } from '@modrinth/assets'
 import { IconButton } from '@modrinth/ui'
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { saveWindowState, StateFlags } from '@tauri-apps/plugin-window-state'
+import { invoke } from '@tauri-apps/api/core'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { useAppSettings } from '@/composables/use-app-settings.ts'
@@ -69,6 +69,8 @@ function setWindowControlsWidth(width) {
 }
 
 let resizeObserver
+let unlistenWindowResize
+let unmounted = false
 watch(controlsEl, (el) => {
 	resizeObserver?.disconnect()
 	resizeObserver = undefined
@@ -100,24 +102,22 @@ onMounted(async () => {
 		isMaximized.value = await getCurrentWindow().isMaximized()
 	})
 
-	onUnmounted(() => {
-		unlisten()
-	})
+	if (unmounted) unlisten()
+	else unlistenWindowResize = unlisten
 })
 
 onUnmounted(() => {
+	unmounted = true
+	unlistenWindowResize?.()
 	resizeObserver?.disconnect()
 	document.documentElement.style.removeProperty('--window-controls-width')
 })
 
-const handleClose = async () => {
-	try {
-		await saveWindowState(StateFlags.ALL)
-	} catch (error) {
-		console.warn('Could not save window position before closing.', error)
-	}
-	await getCurrentWindow().close()
-}
+const windowAction = (action) => invoke('desktop_window_action', { action }).catch((error) => {
+	console.error('SimpleMC window action failed.', error)
+})
+const handleClose = () => windowAction('close')
+
 </script>
 <style scoped>
 .expanded-button::before {

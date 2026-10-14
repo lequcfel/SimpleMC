@@ -12,6 +12,7 @@ use tauri_plugin_fs::FsExt;
 use theseus::prelude::*;
 
 mod api;
+mod desktop;
 
 #[cfg(target_os = "macos")]
 mod macos;
@@ -217,9 +218,9 @@ fn main() {
                 ));
             }
 
-            if let Some(win) = app.get_window("main") {
-                let _ = win.set_focus();
-            }
+            if let Err(error) = desktop::restore(app) {
+				tracing::warn!("Could not restore existing SimpleMC window: {error}");
+			}
         }))
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_os::init())
@@ -290,32 +291,7 @@ fn main() {
                 .build(),
         )
         .setup(|app| {
-			let show = tauri::menu::MenuItem::with_id(app, "show", "Open SimpleMC", true, None::<&str>)?;
-			let menu = tauri::menu::Menu::with_items(app, &[&show])?;
-			tauri::tray::TrayIconBuilder::with_id("SimpleMC")
-				.icon(app.default_window_icon().unwrap().clone())
-				.tooltip("SimpleMC")
-				.menu(&menu)
-				.show_menu_on_left_click(false)
-				.on_menu_event(|app, event| {
-					if event.id.as_ref() == "show" {
-						if let Some(window) = app.get_window("main") {
-							let _ = window.show();
-							let _ = window.unminimize();
-							let _ = window.set_focus();
-						}
-					}
-				})
-				.on_tray_icon_event(|tray, event| {
-					if matches!(event, tauri::tray::TrayIconEvent::Click { button: tauri::tray::MouseButton::Left, button_state: tauri::tray::MouseButtonState::Up, .. }) {
-						if let Some(window) = tray.app_handle().get_window("main") {
-							let _ = window.show();
-							let _ = window.unminimize();
-							let _ = window.set_focus();
-						}
-					}
-				})
-				.build(app)?;
+			desktop::setup_tray(app)?;
 
             #[cfg(target_os = "macos")]
             {
@@ -386,10 +362,16 @@ fn main() {
         .plugin(api::files::init())
         .plugin(api::worlds::init())
         .manage(PendingUpdateData::default())
+		.manage(UpdateCheckState::default())
+		.manage(desktop::DesktopState::default())
+		.on_window_event(desktop::handle_window_event)
         .invoke_handler(tauri::generate_handler![
             initialize_state,
             is_dev,
             are_updates_enabled,
+			check_app_update,
+			desktop::desktop_window_action,
+			desktop::set_desktop_update_preferences,
             get_update_size,
             enqueue_update_for_installation,
             remove_enqueued_update,

@@ -53,6 +53,7 @@ import { get_instance_worlds } from '@/helpers/worlds'
 import {
 	instanceDetailQueryOptions,
 	instanceKeys,
+	instanceListQueryOptions,
 	instanceLinkedProjectQueryOptions,
 } from '@/pages/instance/query-options'
 import { type BreadcrumbDefinition, injectBreadcrumbManager } from '@/providers/breadcrumbs'
@@ -305,11 +306,7 @@ await initInstanceContext()
 async function refreshInstalledProjectIds() {
 	if (!route.query.i) {
 		const instances = await queryClient
-			.fetchQuery({
-				queryKey: [...instanceKeys.all, 'installed-project-ids'],
-				queryFn: listInstances,
-				staleTime: 0,
-			})
+			.fetchQuery(instanceListQueryOptions())
 			.catch(handleError)
 		if (!instances) return
 

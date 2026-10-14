@@ -2,8 +2,11 @@ import { invoke } from '@tauri-apps/api/core'
 import { add_project_from_version, check_installed, create_vanilla_draft, list } from './instance'
 import { selectLaunchInstance } from '@/composables/use-launch-profile'
 
-const SETUP_KEY = 'SimpleMC-optimized-1.21.11-v2'
+const SETUP_KEY = 'SimpleMC-optimized-1.21.11-v3'
+const LEGACY_SETUP_KEY = 'SimpleMC-optimized-1.21.11-v2'
+const ARMOR_HUD = { name: 'armor-durability-hud', project: 'hAG5PWoN', version: 'jzSOiuei' }
 const MODS = [
+	ARMOR_HUD,
 	{ name: "fabric-language-kotlin", project: "Ha28R6CL", version: "SKW1BTL3" },
 	{ name: "yacl", project: "1eAoo2KR", version: "pHWDw3Vc" },
 	{ name: "zoomify", project: "w7ThoJFB", version: "gI5KZI8V" },
@@ -23,6 +26,17 @@ const MODS = [
 export async function setupOptimizedProfile(refreshLibrary: () => Promise<void>) {
 	if (window.localStorage.getItem(SETUP_KEY)) return
 	let instances = await list()
+	if (window.localStorage.getItem(LEGACY_SETUP_KEY)) {
+		const existing = instances.find(instance => instance.game_version === '1.21.11' && instance.loader === 'fabric')
+		if (existing) {
+			if (!await check_installed(existing.id, ARMOR_HUD.project)) {
+				await add_project_from_version(existing.id, ARMOR_HUD.version, 'standalone')
+			}
+			await refreshLibrary()
+		}
+		window.localStorage.setItem(SETUP_KEY, 'complete')
+		return
+	}
 	let profile = instances.find(instance => instance.game_version === '1.21.11' && instance.loader === 'fabric')
 		?? instances.find(instance => instance.game_version === '1.21.11' && instance.loader === 'vanilla')
 	if (!profile) {

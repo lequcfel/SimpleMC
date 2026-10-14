@@ -58,7 +58,6 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { type } from '@tauri-apps/plugin-os'
-import { saveWindowState, StateFlags } from '@tauri-apps/plugin-window-state'
 import { computed, nextTick, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 
@@ -67,10 +66,8 @@ import AppActionBar from '@/components/ui/AppActionBar.vue'
 import Breadcrumbs from '@/components/ui/Breadcrumbs.vue'
 import ErrorModal from '@/components/ui/ErrorModal.vue'
 import UnknownPackWarningModal from '@/components/ui/install_flow/UnknownPackWarningModal.vue'
-import IconEditorModal from '@/components/ui/instance_settings/icon-editor-modal/index.vue'
 import MinecraftAuthErrorModal from '@/components/ui/minecraft-auth-error-modal/MinecraftAuthErrorModal.vue'
 import MinecraftRequiredModal from '@/components/ui/minecraft-required-modal/MinecraftRequiredModal.vue'
-import AppSettingsModal from '@/components/ui/modal/AppSettingsModal.vue'
 import InstallToPlayModal from '@/components/ui/modal/InstallToPlayModal.vue'
 import ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlreadyInstalledModal.vue'
 import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
@@ -86,6 +83,7 @@ import { useCheckDisableMouseover } from '@/composables/macCssFix.js'
 import { useAppEvent } from '@/composables/use-app-event'
 import { backgroundStyle } from '@/composables/use-background'
 import { useAppSettings } from '@/composables/use-app-settings.ts'
+import { useLazyModal } from '@/composables/use-lazy-modal'
 import { useError } from '@/composables/use-error.js'
 import { useInstanceMetadataRefresh } from '@/composables/use-instance-metadata-refresh'
 import { useQuickInstanceLimit } from '@/composables/use-quick-instance-limit.ts'
@@ -274,7 +272,9 @@ provideModalBehavior({
 	noblur: computed(() => !appTheme.advancedRendering),
 })
 
-const creationIconEditorModal = ref(null)
+const creationIconEditor = useLazyModal(() => import('@/components/ui/instance_settings/icon-editor-modal/index.vue'))
+const creationIconEditorModal = creationIconEditor.instance
+const creationIconEditorComponent = creationIconEditor.component
 const creationGeneratedIcon = ref(null)
 const creationIconTarget = ref('creation-flow')
 
@@ -301,7 +301,7 @@ const {
 )
 
 async function randomizeCreationIcon() {
-	const generated = await creationIconEditorModal.value?.randomizeAndSave()
+	const generated = await creationIconEditor.call('randomizeAndSave')
 	if (!generated) return null
 
 	creationGeneratedIcon.value = { path: generated.iconPath, config: generated.config }
@@ -313,12 +313,12 @@ async function randomizeCreationIcon() {
 
 function customizeCreationIcon() {
 	creationIconTarget.value = 'creation-flow'
-	creationIconEditorModal.value?.show()
+	void creationIconEditor.call('show').catch(handleError)
 }
 
 function customizeContentInstallIcon() {
 	creationIconTarget.value = 'content-install'
-	creationIconEditorModal.value?.show()
+	void creationIconEditor.call('show').catch(handleError)
 }
 
 function onCreationIconSaved(iconPath, config) {
@@ -430,28 +430,17 @@ onMounted(async () => {
 	document.querySelector('body').addEventListener('auxclick', handleAuxClick)
 	document.querySelector('body').addEventListener('contextmenu', handleContextMenu)
 
+	await invoke('set_desktop_update_preferences', updatePreferences.value)
 	if (updatePreferences.value.enabled && updatePreferences.value.timing !== 'close') {
 		void checkUpdates()
 	}
-	unlistenUpdateClose = await getCurrentWindow().onCloseRequested(async (event) => {
-		if (allowUpdateClose || !updatePreferences.value.enabled || updatePreferences.value.timing === 'launch') return
-		event.preventDefault()
-		if (checkingBeforeClose) return
-		checkingBeforeClose = true
-		try {
-			await checkUpdates()
-		} finally {
-			allowUpdateClose = true
-			await getCurrentWindow().close()
-		}
-	})
+
 })
 
 onUnmounted(async () => {
 	document.querySelector('body').removeEventListener('click', handleClick)
 	document.querySelector('body').removeEventListener('auxclick', handleAuxClick)
 	document.querySelector('body').removeEventListener('contextmenu', handleContextMenu)
-	unlistenUpdateClose?.()
 	unlistenEditMenu?.()
 	clearDelayedUpdatePopup()
 
@@ -751,8 +740,7 @@ traceStartupStep('Initialize backend state', () => initialize_state(appEventChan
 	})
 
 const handleClose = async () => {
-	await saveWindowState(StateFlags.ALL)
-	await getCurrentWindow().close()
+	await invoke('desktop_window_action', { action: 'close' })
 }
 
 const loading = setupLoadingStateProvider(() => ({
@@ -814,6 +802,7 @@ function onSuspensePending() {
 }
 
 function onSuspenseResolve() {
+	if (import.meta.env.VITE_SIMPLEMC_BENCHMARK === 'true') window.__simplemcPerformance?.routeResolved()
 	debugStartup('Route Suspense resolved', { route: route.path })
 	if (suspenseToken) {
 		loading.end(suspenseToken)
@@ -964,7 +953,15 @@ const sharedInstanceInviteHandler = ref()
 const updateToPlayModal = ref()
 
 const modrinthLoginModal = ref()
-const appSettingsModal = ref()
+const settingsModal = useLazyModal(() => import('@/components/ui/modal/AppSettingsModal.vue'))
+const appSettingsModal = settingsModal.instance
+const settingsModalComponent = settingsModal.component
+const showSettingsModal = (method = 'show') => settingsModal.call(method).catch(handleError)
+if (import.meta.env.VITE_SIMPLEMC_BENCHMARK === 'true') {
+	window.__simplemcPerformance.openSettings = () => showSettingsModal()
+	window.__simplemcPerformance.randomizeIcon = randomizeCreationIcon
+	window.__simplemcPerformance.screenshotCount = () => queryClient.getQueryData(screenshotKeys.global())?.length ?? 0
+}
 const syncInstancesUpdateModal = ref()
 let syncInstancesUpdateNotificationId = null
 
@@ -1002,8 +999,8 @@ function showSyncInstancesUpdateNotification() {
 	syncInstancesUpdateNotificationId = notification.id
 }
 
-provide(appSettingsModalOpenProfileKey, () => appSettingsModal.value?.showProfile())
-provide(appSettingsModalOpenSyncedOptionsKey, () => appSettingsModal.value?.showSyncedOptions())
+provide(appSettingsModalOpenProfileKey, () => showSettingsModal('showProfile'))
+provide(appSettingsModalOpenSyncedOptionsKey, () => showSettingsModal('showSyncedOptions'))
 
 watch(
 	() => appSettings.getFeatureFlag('show_sync_instances_update_modal'),
@@ -1352,7 +1349,7 @@ const modrinthAccountMenuOptions = computed(() => [
 		label: formatMessage(commonSettingsMessages.featureFlags),
 		icon: ToggleRightIcon,
 		shown: appSettings.devMode,
-		action: () => appSettingsModal.value?.showFeatureFlags(),
+		action: () => showSettingsModal('showFeatureFlags'),
 	},
 	{
 		type: 'divider',
@@ -1697,9 +1694,6 @@ function showDelayedUpdatePopup() {
 	markAppUpdatePopupShown(update.version, stage)
 }
 
-let unlistenUpdateClose
-let allowUpdateClose = false
-let checkingBeforeClose = false
 let updateCheckPromise = null
 
 async function checkUpdates(manual = false) {
@@ -1720,7 +1714,7 @@ async function performUpdateCheck(manual) {
 			return
 		}
 		async function performCheck() {
-			const update = await invoke('plugin:updater|check', { timeout: 10000 })
+			const update = await invoke('check_app_update')
 			if (!update) {
 				updateCheckState.value.message = `You’re up to date. You have SimpleMC ${await getVersion()}.`
 				return
@@ -1946,7 +1940,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 				</span>
 			</div>
 		</Transition>
-		<AppSettingsModal ref="appSettingsModal" />
+		<component :is="settingsModalComponent" v-if="settingsModalComponent" ref="appSettingsModal" />
 		<SyncInstancesUpdateModal ref="syncInstancesUpdateModal" />
 		<CreationFlowModal
 			ref="installationModal"
@@ -1962,7 +1956,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			@create="handleCreate"
 			@browse-modpacks="handleBrowseModpacks"
 		/>
-		<IconEditorModal
+		<component
+			:is="creationIconEditorComponent"
+			v-if="creationIconEditorComponent"
 			ref="creationIconEditorModal"
 			:config="creationGeneratedIcon?.config"
 			@saved="onCreationIconSaved"
@@ -1972,7 +1968,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			<AccountsCard ref="accounts" />
 			<NavButton
 				v-tooltip.right="formatMessage(commonMessages.settingsLabel)"
-				:to="() => appSettingsModal?.show()"
+				:to="() => showSettingsModal()"
 			>
 				<SettingsIcon />
 			</NavButton>

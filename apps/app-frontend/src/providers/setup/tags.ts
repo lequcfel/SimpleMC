@@ -1,7 +1,7 @@
 import { type AbstractWebNotificationManager, provideTags } from '@modrinth/ui'
 import { ref } from 'vue'
 
-import { get_game_versions, get_loaders } from '@/helpers/tags'
+import { get_categories, get_game_versions, get_loaders } from '@/helpers/tags'
 
 export function setupTagsProvider(notificationManager: AbstractWebNotificationManager) {
 	const { handleError } = notificationManager
@@ -10,6 +10,7 @@ export function setupTagsProvider(notificationManager: AbstractWebNotificationMa
 	const loaders = ref([])
 
 	function initialize() {
+		void get_categories().catch(handleError)
 		get_game_versions()
 			.then((v) => {
 				gameVersions.value = v

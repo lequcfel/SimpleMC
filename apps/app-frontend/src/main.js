@@ -1,3 +1,4 @@
+import '@/helpers/performance-benchmark'
 import 'overlayscrollbars/overlayscrollbars.css'
 
 import { installTooltipDirective } from '@modrinth/ui'
@@ -35,6 +36,7 @@ async function mount() {
 	debugStartup('Vue mount started')
 	app.mount('#app')
 	debugStartup('Vue mount completed')
+	if (import.meta.env.VITE_SIMPLEMC_BENCHMARK === 'true') void window.__simplemcPerformance.run(router)
 }
 
 void mount()

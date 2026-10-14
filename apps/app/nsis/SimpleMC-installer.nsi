@@ -76,6 +76,7 @@ ${StrLoc}
 Var PassiveMode
 Var UpdateMode
 Var NoShortcutMode
+Var NoDesktopShortcutMode
 Var WixMode
 Var OldMainBinaryName
 
@@ -340,6 +341,11 @@ Function .onInit
     StrCpy $UpdateMode 1
   ${EndIf}
 
+  ${GetOptions} $CMDLINE "/ND" $NoDesktopShortcutMode
+  ${IfNot} ${Errors}
+    StrCpy $NoDesktopShortcutMode 1
+  ${EndIf}
+
   !if "${DISPLAYLANGUAGESELECTOR}" == "true"
     !insertmacro MUI_LANGDLL_DISPLAY
   !endif
@@ -554,8 +560,16 @@ Section Install
   WriteRegStr SHCTX "${UNINSTKEY}" "Publisher" "${MANUFACTURER}"
   WriteRegStr SHCTX "${UNINSTKEY}" "InstallLocation" "$\"$INSTDIR$\""
   WriteRegStr SHCTX "${UNINSTKEY}" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
+  WriteRegStr SHCTX "${UNINSTKEY}" "QuietUninstallString" "$\"$INSTDIR\uninstall.exe$\" /S"
+  ${If} ${FileExists} "$INSTDIR\SimpleMC-maintenance.exe"
+    WriteRegStr SHCTX "${UNINSTKEY}" "UninstallString" "$\"$INSTDIR\SimpleMC-maintenance.exe$\" --uninstall"
+    WriteRegStr SHCTX "${UNINSTKEY}" "ModifyPath" "$\"$INSTDIR\SimpleMC-maintenance.exe$\" --repair"
+    WriteRegDWORD SHCTX "${UNINSTKEY}" "NoModify" "0"
+    WriteRegDWORD SHCTX "${UNINSTKEY}" "NoRepair" "0"
+  ${Else}
   WriteRegDWORD SHCTX "${UNINSTKEY}" "NoModify" "1"
   WriteRegDWORD SHCTX "${UNINSTKEY}" "NoRepair" "1"
+  ${EndIf}
 
   ${GetSize} "$INSTDIR" "/M=uninstall.exe /S=0K /G=0" $0 $1 $2
   IntOp $0 $0 + ${ESTIMATEDSIZE}
@@ -662,6 +676,7 @@ Section Uninstall
 
 
   ; Delete uninstaller
+  Delete "$INSTDIR\SimpleMC-maintenance.exe"
   Delete "$INSTDIR\uninstall.exe"
 
   {{#each resources_ancestors}}
@@ -804,6 +819,15 @@ Function CreateOrUpdateStartMenuShortcut
 FunctionEnd
 
 Function CreateOrUpdateDesktopShortcut
+
+  ${If} $NoDesktopShortcutMode = 1
+    !insertmacro IsShortcutTarget "$DESKTOP\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
+    Pop $0
+    ${If} $0 = 1
+      Delete "$DESKTOP\${PRODUCTNAME}.lnk"
+    ${EndIf}
+    Return
+  ${EndIf}
   ; We used to use product name as MAINBINARYNAME
   ; migrate old shortcuts to target the new MAINBINARYNAME
   !insertmacro IsShortcutTarget "$DESKTOP\${PRODUCTNAME}.lnk" "$INSTDIR\$OldMainBinaryName"
