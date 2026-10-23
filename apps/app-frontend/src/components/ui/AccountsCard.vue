@@ -131,11 +131,10 @@ import { useAppEvent } from '@/composables/use-app-event'
 import { handleSevereError } from '@/composables/use-error.js'
 
 import {
-	get_default_user,
+	get_stored_accounts,
 	login as login_flow,
 	remove_user,
 	set_default_user,
-	users,
 } from '@/helpers/auth'
 import { getPlayerHeadUrl } from '@/helpers/rendering/player-head'
 import type { Skin } from '@/helpers/skins'
@@ -149,6 +148,7 @@ const emit = defineEmits<{
 }>()
 
 type MinecraftCredential = {
+	active?: boolean
 	profile: {
 		id: string
 		name: string
@@ -162,6 +162,8 @@ const defaultUser = ref<string | undefined>()
 const equippedSkin = ref<Skin | null>(null)
 const equippedHeadUrl = ref<string>()
 let headRequest = 0
+let accountRequest = 0
+let displayedAccountId: string | undefined
 
 async function updateHeadUrl(skin: Skin | null) {
 	const request = ++headRequest
@@ -174,33 +176,66 @@ async function updateHeadUrl(skin: Skin | null) {
 }
 
 onUnmounted(() => {
+	accountRequest++
 	headRequest++
 	if (equippedHeadUrl.value) URL.revokeObjectURL(equippedHeadUrl.value)
 })
 
-async function refreshValues() {
-	defaultUser.value = await get_default_user().catch(handleError)
-	const userList = await users().catch(handleError)
-	accounts.value = Array.isArray(userList) ? [...userList] : []
-	accounts.value.sort((a, b) => (a.profile?.name ?? '').localeCompare(b.profile?.name ?? ''))
-
-	try {
-		if (!accounts.value.some((account) => account.profile.id === defaultUser.value)) {
-			equippedSkin.value = null
-			await updateHeadUrl(null)
-			return
-		}
-		const skins = await get_available_skins()
-		equippedSkin.value = skins.find((skin) => skin.is_equipped) ?? null
-
-		await updateHeadUrl(equippedSkin.value)
-	} catch {
+function applyStoredAccounts(userList: MinecraftCredential[]) {
+	const nextId = userList.find((account) => account.active)?.profile.id
+	if (nextId !== displayedAccountId) {
+		displayedAccountId = nextId
 		equippedSkin.value = null
 		void updateHeadUrl(null)
+	}
+	accounts.value = [...userList].sort((a, b) => a.profile.name.localeCompare(b.profile.name))
+	defaultUser.value = nextId
+}
+
+async function refreshValues() {
+	const request = ++accountRequest
+	const userList = await get_stored_accounts()
+	if (request !== accountRequest) return
+	applyStoredAccounts(userList)
+	const accountId = selectedAccount.value?.profile.id
+	if (!accountId) {
+		equippedSkin.value = null
+		void updateHeadUrl(null)
+		return
+	}
+	void refreshSkin(accountId, request)
+}
+
+async function refreshSkin(accountId: string, request: number) {
+	const current = () => request === accountRequest && selectedAccount.value?.profile.id === accountId
+	try {
+		const skins = await get_available_skins()
+		if (!current()) return
+		equippedSkin.value = skins.find((skin) => skin.is_equipped) ?? null
+		await updateHeadUrl(equippedSkin.value)
+	} catch {
+		if (current()) {
+			equippedSkin.value = null
+			void updateHeadUrl(null)
+		}
+	} finally {
+		if (current()) {
+			try {
+				const latest = await get_stored_accounts()
+				if (current()) {
+					const nextId = latest.find((account: MinecraftCredential) => account.active)?.profile.id
+					if (nextId !== accountId) await refreshValues()
+					else applyStoredAccounts(latest)
+				}
+			} catch (error) {
+				console.warn('Could not refresh saved account display.', error)
+			}
+		}
 	}
 }
 
 async function setEquippedSkin(skin: Skin) {
+	accountRequest++
 	equippedSkin.value = skin
 
 	try {
@@ -261,6 +296,7 @@ function getAccountAvatarUrl(account: MinecraftCredential) {
 }
 
 async function setAccount(account: MinecraftCredential) {
+	accountRequest++
 	defaultUser.value = account.profile.id
 	await set_default_user(account.profile.id).catch(handleError)
 	await refreshValues()
@@ -286,6 +322,7 @@ async function login() {
 }
 
 async function logout(id: string) {
+	accountRequest++
 	await remove_user(id).catch(handleError)
 	await refreshValues()
 	if (!selectedAccount.value && accounts.value.length > 0) {

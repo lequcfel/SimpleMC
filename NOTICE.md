@@ -3,7 +3,7 @@
 SimpleMC is an independent modified version of Modrinth App, originally developed by Rinth, Inc. and its contributors: https://github.com/modrinth/code
 It is not affiliated with or endorsed by Modrinth.
 
-SimpleMC launcher modifications by lequcfel and contributors, 2026. Modified through 2026-10-15.
+SimpleMC launcher modifications by lequcfel and contributors, 2026. Modified through 2026-10-23.
 The launcher, frontend, shared UI and backend code are licensed under GPL-3.0-only. Original copyright and license notices are retained. Other packages and dependencies retain their respective licenses.
 
 This software is provided WITHOUT WARRANTY. You may copy, modify and redistribute the covered work under GNU GPL version 3. See LICENSE and each package's license.

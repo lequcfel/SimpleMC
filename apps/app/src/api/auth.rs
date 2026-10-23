@@ -13,6 +13,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             get_default_user,
             set_default_user,
             get_users,
+			get_stored_accounts,
         ])
         .build()
 }
@@ -105,4 +106,9 @@ pub async fn set_default_user(user: uuid::Uuid) -> Result<()> {
 #[tauri::command]
 pub async fn get_users() -> Result<Vec<Credentials>> {
     Ok(minecraft_auth::users().await?)
+}
+
+#[tauri::command]
+pub async fn get_stored_accounts() -> Result<Vec<minecraft_auth::StoredMinecraftAccount>> {
+	Ok(minecraft_auth::stored_accounts().await?)
 }

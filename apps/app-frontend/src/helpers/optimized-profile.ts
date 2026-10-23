@@ -4,7 +4,7 @@ import { selectLaunchInstance } from '@/composables/use-launch-profile'
 
 const SETUP_KEY = 'SimpleMC-optimized-1.21.11-v3'
 const LEGACY_SETUP_KEY = 'SimpleMC-optimized-1.21.11-v2'
-const ARMOR_HUD = { name: 'armor-durability-hud', project: 'hAG5PWoN', version: 'jzSOiuei' }
+const ARMOR_HUD = { name: 'armor-durability-hud', project: 'hAG5PWoN', version: 'FzBzQQRQ' }
 const MODS = [
 	ARMOR_HUD,
 	{ name: "fabric-language-kotlin", project: "Ha28R6CL", version: "SKW1BTL3" },

@@ -6,6 +6,55 @@ use crate::State;
 use crate::state::{Credentials, MinecraftLoginFlow};
 use crate::util::fetch::INSECURE_REQWEST_CLIENT;
 
+#[derive(serde::Serialize)]
+pub struct StoredMinecraftProfile {
+	pub id: String,
+	pub name: String,
+}
+
+#[derive(serde::Serialize)]
+pub struct StoredMinecraftAccount {
+	pub profile: StoredMinecraftProfile,
+	pub active: bool,
+}
+
+/// Read account display data without refreshing tokens or fetching online profiles.
+pub async fn stored_accounts() -> crate::Result<Vec<StoredMinecraftAccount>> {
+	let state = State::get().await?;
+	read_stored_accounts(&state.pool).await
+}
+
+async fn read_stored_accounts(
+	exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
+) -> crate::Result<Vec<StoredMinecraftAccount>> {
+	let rows = sqlx::query_as::<_, (String, String, bool)>(
+		"SELECT uuid, username, active FROM minecraft_users ORDER BY username COLLATE NOCASE",
+	).fetch_all(exec).await?;
+	Ok(rows.into_iter().map(|(id, name, active)| StoredMinecraftAccount {
+		profile: StoredMinecraftProfile { id, name }, active,
+	}).collect())
+}
+
+#[cfg(test)]
+mod stored_account_tests {
+	use super::*;
+
+	#[tokio::test]
+	async fn account_display_reads_only_local_public_fields() {
+		let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+		sqlx::query("CREATE TABLE minecraft_users (uuid TEXT, username TEXT, active INTEGER)").execute(&pool).await.unwrap();
+		assert!(read_stored_accounts(&pool).await.unwrap().is_empty());
+		sqlx::query("INSERT INTO minecraft_users VALUES ('b', 'Zulu', 0), ('a', 'Alex', 1)").execute(&pool).await.unwrap();
+		let accounts = read_stored_accounts(&pool).await.unwrap();
+		assert_eq!(accounts[0].profile.name, "Alex");
+		assert!(accounts[0].active);
+		assert!(!accounts[1].active);
+		let json = serde_json::to_value(accounts).unwrap();
+		assert!(json[0].get("access_token").is_none());
+		assert!(json[0].get("refresh_token").is_none());
+	}
+}
+
 #[tracing::instrument]
 pub async fn check_reachable() -> crate::Result<()> {
     let resp = INSECURE_REQWEST_CLIENT
