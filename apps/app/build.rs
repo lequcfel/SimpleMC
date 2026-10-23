@@ -19,6 +19,7 @@ fn main() {
                         "get_default_user",
                         "set_default_user",
                         "get_users",
+                        "get_stored_accounts",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,

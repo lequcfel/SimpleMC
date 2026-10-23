@@ -114,7 +114,7 @@ The upstream monorepo structure and additional packages remain available for bui
 
 SimpleMC is an independent modified version of [Modrinth App](https://github.com/modrinth/code), originally developed by **Rinth, Inc. and its contributors**. SimpleMC is not affiliated with or endorsed by Modrinth.
 
-SimpleMC modifications by **lequcfel and contributors**, 2026; modified through **23 October 2026**. The launcher and its modifications are licensed under **GPL-3.0-only**. Original copyright and package license notices are retained. Other packages, third-party dependencies, and downloaded mods retain their own licenses.
+SimpleMC modifications by **lequcfel and contributors**, 2026; modified through **24 October 2026**. The launcher and its modifications are licensed under **GPL-3.0-only**. Original copyright and package license notices are retained. Other packages, third-party dependencies, and downloaded mods retain their own licenses.
 
 See [LICENSE](LICENSE), [NOTICE.md](NOTICE.md), and each package's license. The software is provided **without warranty**. When redistributing a build, provide the matching modified source and build instructions under the applicable license terms.
 
@@ -123,6 +123,10 @@ Minecraft and Microsoft names and logos belong to their respective owners. Simpl
 ## Performance improvements
 
 See the [measured startup, screen-loading, and scrolling results](docs/SimpleMC-performance-2026-10-14.md) included in 1.0.3, with the test method and limitations.
+
+## Version 1.0.5
+
+- Fixed the account-command permission missing in 1.0.4, restoring saved account display and sign-in.
 
 ## Version 1.0.4
 

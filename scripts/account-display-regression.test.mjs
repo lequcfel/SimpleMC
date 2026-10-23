@@ -84,3 +84,13 @@ if (process.env.SIMPLEMC_ACCOUNT_BASELINE) {
 		console.log(JSON.stringify({ simulatedNetworkDelayMs: 10000, beforeAccountVisibleMs: beforeMs, afterAccountVisibleMs: afterMs }))
 	})
 }
+
+test('every auth handler is registered in the Tauri permission manifest', () => {
+	const handlerSource = readFileSync(resolve(root, 'apps/app/src/api/auth.rs'), 'utf8')
+	const buildSource = readFileSync(resolve(root, 'apps/app/build.rs'), 'utf8')
+	const handlers = handlerSource.match(/generate_handler!\[([\s\S]*?)\]/)[1].match(/\b[a-z_]+\b/g)
+	const permissions = buildSource.match(/"auth",[\s\S]*?\.commands\(&\[([\s\S]*?)\]/)[1]
+	for (const command of handlers) assert.ok(permissions.includes('"' + command + '"'), `Missing auth ACL registration: ${command}`)
+	const capability = JSON.parse(readFileSync(resolve(root, 'apps/app/capabilities/plugins.json'), 'utf8'))
+	assert.ok(capability.permissions.includes('auth:default'))
+})
